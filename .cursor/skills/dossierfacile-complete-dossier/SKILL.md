@@ -101,3 +101,9 @@ Faire un dernier `GET /api/tenant/profile` et vérifier que `status === "TO_PROC
 | Document refusé (`documentStatus: "DECLINED"`) | Lire `documentDeniedReasons`, informer l'usager, redemander le fichier corrigé et resoumettre |
 | Upload échoué (`400`, `413`) | Vérifier le format/taille du fichier, réessayer avec un fichier valide |
 | Profil vide après soumission | Attendre 2–3 secondes et re-GET (traitement asynchrone possible) |
+
+### Détails utiles pour les `400` sur endpoints multipart
+
+- Si l'API signale `noDocument must not be null`, envoyer explicitement `noDocument=false` avec un upload.
+- Si l'API signale `categoryStep ... can not be null`, renseigner la valeur attendue selon le sous-type (ex. `TENANT_RECEIPT`, `SALARY_EMPLOYED_MORE_3_MONTHS`, `TAX_FRENCH_NOTICE`).
+- Pour `typeDocumentFinancial=SALARY`, fournir `monthlySum` strictement positif.

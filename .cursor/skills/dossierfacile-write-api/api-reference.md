@@ -53,6 +53,11 @@ Content-Type: application/json
 
 Les 5 routes suivantes peuvent être appelées dans n'importe quel ordre.
 
+> ⚠️ **Important** :
+> - Plusieurs endpoints exigent explicitement `noDocument` (boolean).
+> - Certains sous-types exigent `categoryStep`.
+> - Pour `typeDocumentFinancial=SALARY`, `monthlySum` est requis et strictement positif.
+
 ---
 
 ### Pièce d'identité
@@ -65,7 +70,7 @@ Content-Type: multipart/form-data
 | Champ form-data | Type | Valeurs possibles |
 |---|---|---|
 | `typeDocumentIdentification` | string | `FRENCH_IDENTITY_CARD` \| `FRENCH_PASSPORT` \| `FRENCH_RESIDENCE_PERMIT` \| `DRIVERS_LICENSE` \| `FRANCE_IDENTITE` \| `OTHER_IDENTIFICATION` |
-| `files` | fichier(s) | PDF, JPG, PNG, HEIC |
+| `documents` | fichier(s) | PDF, JPG, PNG, HEIC |
 | `noDocument` | boolean (optionnel) | `true` si déclaration sans justificatif |
 
 Exemple :
@@ -74,8 +79,9 @@ Exemple :
 curl -X POST ${API_URL}/api/register/documentIdentification \
   -H "Authorization: Bearer $TOKEN" \
   -F "typeDocumentIdentification=FRENCH_IDENTITY_CARD" \
-  -F "files=@cni-recto.jpg" \
-  -F "files=@cni-verso.jpg"
+  -F "noDocument=false" \
+  -F "documents=@cni-recto.jpg" \
+  -F "documents=@cni-verso.jpg"
 ```
 
 ---
@@ -90,7 +96,8 @@ Content-Type: multipart/form-data
 | Champ form-data | Type | Valeurs possibles |
 |---|---|---|
 | `typeDocumentResidency` | string | `TENANT` \| `OWNER` \| `GUEST` \| `GUEST_COMPANY` \| `GUEST_ORGANISM` \| `SHORT_TERM_RENTAL` \| `OTHER_RESIDENCY` |
-| `files` | fichier(s) | PDF, JPG, PNG, HEIC |
+| `documents` | fichier(s) | PDF, JPG, PNG, HEIC |
+| `categoryStep` | string (conditionnel) | ex. `TENANT_RECEIPT` pour `TENANT` |
 | `customText` | string (optionnel) | Description obligatoire si `OTHER_RESIDENCY` |
 
 Exemple (locataire avec quittances) :
@@ -99,9 +106,10 @@ Exemple (locataire avec quittances) :
 curl -X POST ${API_URL}/api/register/documentResidency \
   -H "Authorization: Bearer $TOKEN" \
   -F "typeDocumentResidency=TENANT" \
-  -F "files=@quittance-mars.pdf" \
-  -F "files=@quittance-avril.pdf" \
-  -F "files=@quittance-mai.pdf"
+  -F "categoryStep=TENANT_RECEIPT" \
+  -F "documents=@quittance-mars.pdf" \
+  -F "documents=@quittance-avril.pdf" \
+  -F "documents=@quittance-mai.pdf"
 ```
 
 ---
@@ -116,7 +124,7 @@ Content-Type: multipart/form-data
 | Champ form-data | Type | Valeurs possibles |
 |---|---|---|
 | `typeDocumentProfessional` | string | `CDI` \| `CDI_TRIAL` \| `CDD` \| `PUBLIC` \| `INDEPENDENT` \| `RETIRED` \| `UNEMPLOYED` \| `STUDENT` \| `ALTERNATION` \| `INTERNSHIP` \| `CTT` \| `INTERMITTENT` \| `ARTIST` \| `STAY_AT_HOME_PARENT` \| `NO_ACTIVITY` \| `OTHER` |
-| `files` | fichier(s) | PDF, JPG, PNG, HEIC |
+| `documents` | fichier(s) | PDF, JPG, PNG, HEIC |
 | `noDocument` | boolean (optionnel) | `true` si déclaration sans justificatif |
 
 Exemple (CDI) :
@@ -125,7 +133,8 @@ Exemple (CDI) :
 curl -X POST ${API_URL}/api/register/documentProfessional \
   -H "Authorization: Bearer $TOKEN" \
   -F "typeDocumentProfessional=CDI" \
-  -F "files=@contrat-travail.pdf"
+  -F "noDocument=false" \
+  -F "documents=@contrat-travail.pdf"
 ```
 
 ---
@@ -140,8 +149,10 @@ Content-Type: multipart/form-data
 | Champ form-data | Type | Valeurs possibles |
 |---|---|---|
 | `typeDocumentFinancial` | string | `SALARY` \| `SOCIAL_SERVICE` \| `PENSION` \| `RENT` \| `SCHOLARSHIP` \| `NO_INCOME` |
-| `files` | fichier(s) | PDF, JPG, PNG, HEIC |
-| `noDocument` | boolean (optionnel) | `true` pour `NO_INCOME` |
+| `documents` | fichier(s) | PDF, JPG, PNG, HEIC |
+| `noDocument` | boolean | `true` pour `NO_INCOME`, sinon `false` |
+| `categoryStep` | string (conditionnel) | requis pour plusieurs sous-types, ex. `SALARY_EMPLOYED_MORE_3_MONTHS` |
+| `monthlySum` | number (conditionnel) | requis pour `SALARY`, strictement positif |
 
 **Si l'usager a plusieurs types de revenus**, appeler cet endpoint **une fois par type** avec les fichiers correspondants.
 
@@ -151,9 +162,12 @@ Exemple (salaire) :
 curl -X POST ${API_URL}/api/register/documentFinancial \
   -H "Authorization: Bearer $TOKEN" \
   -F "typeDocumentFinancial=SALARY" \
-  -F "files=@fiche-paie-mars.pdf" \
-  -F "files=@fiche-paie-avril.pdf" \
-  -F "files=@fiche-paie-mai.pdf"
+  -F "categoryStep=SALARY_EMPLOYED_MORE_3_MONTHS" \
+  -F "monthlySum=2000" \
+  -F "noDocument=false" \
+  -F "documents=@fiche-paie-mars.pdf" \
+  -F "documents=@fiche-paie-avril.pdf" \
+  -F "documents=@fiche-paie-mai.pdf"
 ```
 
 ---
@@ -168,9 +182,10 @@ Content-Type: multipart/form-data
 | Champ form-data | Type | Valeurs possibles |
 |---|---|---|
 | `typeDocumentTax` | string | `MY_NAME` \| `MY_PARENTS` \| `OTHER_TAX` |
-| `files` | fichier(s) | PDF, JPG, PNG, HEIC |
-| `customText` | string (optionnel) | Description si `OTHER_TAX`; ou précision du sous-cas (`TAX_FRENCH_NOTICE`, `TAX_FOREIGN_NOTICE`, `TAX_NOT_RECEIVED`, `TAX_NO_DECLARATION`) |
-| `noDocument` | boolean (optionnel) | `true` si pas de document (ex. première déclaration) |
+| `documents` | fichier(s) | PDF, JPG, PNG, HEIC |
+| `categoryStep` | string (conditionnel) | Sous-cas pour `MY_NAME` : `TAX_FRENCH_NOTICE` \| `TAX_FOREIGN_NOTICE` \| `TAX_NOT_RECEIVED` \| `TAX_NO_DECLARATION`. Pas envoyé pour `MY_PARENTS`. |
+| `noDocument` | boolean | `true` pour `TAX_NOT_RECEIVED` et `TAX_NO_DECLARATION` (aucun fichier requis), `false` sinon |
+| `customText` | string (optionnel) | Description libre obligatoire uniquement pour `OTHER_TAX` |
 
 Exemple (avis français) :
 
@@ -178,18 +193,29 @@ Exemple (avis français) :
 curl -X POST ${API_URL}/api/register/documentTax \
   -H "Authorization: Bearer $TOKEN" \
   -F "typeDocumentTax=MY_NAME" \
-  -F "customText=TAX_FRENCH_NOTICE" \
-  -F "files=@avis-imposition-2025.pdf"
+  -F "categoryStep=TAX_FRENCH_NOTICE" \
+  -F "noDocument=false" \
+  -F "documents=@avis-imposition-2025.pdf"
 ```
 
-Exemple (sans déclaration) :
+Exemple (sans déclaration — aucun fichier) :
 
 ```bash
 curl -X POST ${API_URL}/api/register/documentTax \
   -H "Authorization: Bearer $TOKEN" \
   -F "typeDocumentTax=MY_NAME" \
-  -F "customText=TAX_NO_DECLARATION" \
+  -F "categoryStep=TAX_NO_DECLARATION" \
   -F "noDocument=true"
+```
+
+Exemple (rattaché aux parents) :
+
+```bash
+curl -X POST ${API_URL}/api/register/documentTax \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "typeDocumentTax=MY_PARENTS" \
+  -F "noDocument=false" \
+  -F "documents=@avis-imposition-parents.pdf"
 ```
 
 ---

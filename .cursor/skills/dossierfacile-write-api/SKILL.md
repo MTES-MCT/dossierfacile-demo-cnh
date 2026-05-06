@@ -44,7 +44,10 @@ Authorization: Bearer <access_token>
 
 Champs du formulaire :
 - `typeDocument*` (string) — valeur API du type de document (ex. `FRENCH_IDENTITY_CARD`)
-- `files` (fichier) — un ou plusieurs fichiers PDF, JPG, PNG ou HEIC
+- `documents` (fichier) — un ou plusieurs fichiers PDF, JPG, PNG ou HEIC
+- `noDocument` (boolean) — souvent obligatoire selon l'endpoint/sous-type
+- `categoryStep` (string) — requis pour certains sous-types (résidence, financier, fiscal)
+- `monthlySum` (number) — requis pour certains revenus (ex. `SALARY`)
 
 Exemple Python :
 
@@ -52,7 +55,8 @@ Exemple Python :
 import requests
 
 files = [("files", open("cni-recto.jpg", "rb")), ("files", open("cni-verso.jpg", "rb"))]
-data = {"typeDocumentIdentification": "FRENCH_IDENTITY_CARD"}
+files = [("documents", open("cni-recto.jpg", "rb")), ("documents", open("cni-verso.jpg", "rb"))]
+data = {"typeDocumentIdentification": "FRENCH_IDENTITY_CARD", "noDocument": "false"}
 
 resp = requests.post(
     f"{API_URL}/api/register/documentIdentification",  # API_URL résolu depuis environments.md
@@ -70,3 +74,12 @@ resp = requests.post(
 | `403 Forbidden` | Scope `dossier` manquant | Vérifier la configuration du client Keycloak |
 | `400 Bad Request` | Payload invalide ou champ manquant | Vérifier le nom exact du champ (`typeDocument*`) dans `api-reference.md` |
 | `413 Payload Too Large` | Fichier trop volumineux | Compresser ou réduire la résolution du fichier |
+
+## Notes
+
+- En cas de `400` sur `categoryStep`, renseigner la valeur attendue par le sous-type:
+  - `TENANT` -> `TENANT_RECEIPT`
+  - `SALARY` -> ex. `SALARY_EMPLOYED_MORE_3_MONTHS` ou `SALARY_EMPLOYED_LESS_3_MONTHS`
+  - `MY_NAME` (taxe) -> ex. `TAX_FRENCH_NOTICE`
+- En cas de `400` sur `noDocument`, envoyer explicitement `noDocument=false` lorsque des fichiers sont transmis.
+- En cas de `400` sur `monthlySum` pour `SALARY`, envoyer un montant strictement positif (ex. `2000`).
